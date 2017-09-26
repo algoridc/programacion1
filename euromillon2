@@ -1,0 +1,244 @@
+// @author Alberto Gordillo Rivero
+// @author Mario Juarez Bernardino
+
+import java.util.Scanner;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+
+public class euromillon2 {
+
+    public static void main(String[] args) {
+ //1. TOMA DE DATOS
+      double p1 = Double.parseDouble(args[0]),p2 = Double.parseDouble(args[1]),premio=0;
+      boolean error=false;
+      int modo_int=0;
+
+   // mostrar en pantalla
+    System.out.println("Bienvenido a su Euromillon online.");
+    System.out.printf("Hoy el numero acertado se paga a %.2f euros.\n",p2);
+    System.out.printf("Y la estrella acertada se paga a %.2f euros.\n",p1);
+
+    //preguntar cuantas columnas jugara
+    int columnas= teclado("Cuantas columnas desea jugar?");
+    if(columnas<1) columnas=1;
+    
+    //defino matrices para los boletos,la combinacion ganadora y texto de resultado
+    int[] ganador = null;    
+    int[][]boleto=new int[columnas][];
+    String[] texto=null;
+
+    //preguntar si va a introducir una combinacion o hay que generarla automaticamente
+    do{      
+        String modo= teclado_string("quiere que la combinacion de datos se genere de forma \"automatica\" o \"manual\"?");     
+        //genero una variable int en funcion de las posibles respuestas    
+        if (modo.equals("manual")||modo.equals("m")) modo_int=1;
+        else  if (modo.equals("automatica")||modo.equals("a")) modo_int=2;
+          
+      }while(modo_int<1);
+    
+//2. PROCESAMIENTO
+    
+    switch (modo_int){///////////////////////////////////////////////////////////////////////////////////////
+    case 1:////////////////////// MODO MANUAL ///////////////////////////////////////////////////////////////
+      // llamo a boleto_manual() i veces (tantas como columnas quiero jugar)
+   for(int i=0;i<columnas;i++){
+      do{
+          boleto[i]=boleto_manual(i+1);
+      //si algun numero esta fuera de rango pedir otra vez
+          if (boleto[i][0]<1 || boleto[i][0]>50||boleto[i][1]<1 || boleto[i][1]>50||boleto[i][2]<1 || boleto[i][2]>50||boleto[i][3]<1 || boleto[i][3]>50||boleto[i][4]<1 || boleto[i][4]>50||boleto[i][5]<0 || boleto[i][5]>9||boleto[i][6]<0 || boleto[i][6]>9)
+              {System.out.println("Dato fuera de rango. Por favor introduzca el valor de nuevo.");error=true;}
+          else {
+                error=false;
+      //si algun numero esta repetido pedir otra vez
+                if(comprobar_numeros(boleto[i][0],boleto[i][1],boleto[i][2],boleto[i][3],boleto[i][4],boleto[i][5],boleto[i][6])==false)
+                   {System.out.println("Introdujo algun dato repetido.");error=true;}
+                else error=false;
+               }
+        }while(error==true);
+      } //fin del for
+   
+    break;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    case 2://automatico  //////// MODO AUTOMATICO //////////////////////////////////////////////////////////
+   
+    for(int i=0;i<columnas;i++) {boleto[i]=boleto_aleatorio();}
+
+    break;
+    }//fin del switch
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    //creo un string con las apuestas para guargar en el archivo y mostrar en pantalla
+    String modo2=null,boletotxt="";
+    for(int i=0;i<columnas;i++)
+    {boletotxt=boletotxt+"Apuesta "+(i+1)+"  numeros:"+boleto[i][0]+" "+boleto[i][1]+" "+boleto[i][2]+" "+boleto[i][3]+" "+boleto[i][4]+" estrellas:"+boleto[i][5]+" "+boleto[i][6]+" \n";}
+boletotxt=boletotxt+"*********************************\n\n";
+
+    //imprimo en boleto.txt
+    escribir_File(boletotxt,"boleto.txt");
+
+    //preguntar si quiere ver las combinaciones generadas y si es que si, la muestro
+    modo2= teclado_string("quiere visualizar las combinaciones generadas?");
+    if (modo2.equals("si") || modo2.equals("s"))  System.out.printf(boletotxt);
+    
+   
+    //genero el boleto ganador y lo muestro
+    ganador = boleto_aleatorio();
+    System.out.printf("combinacion ganadora:  %d %d %d %d %d   %d %d \n",ganador[0],ganador[1],ganador[2],ganador[3],ganador[4],ganador[5],ganador[6]);
+
+    //3. SALIDA
+
+    //como ya tengo boletos y combinacion ganadora ejecuto comprobar_premios()
+    //el array texto son los distintos textos a mostrar, textos= texto(n)!
+    String textos="";
+    for(int i=0;i<columnas;i++){
+       texto=comprobar_premios(ganador,boleto[i],p1,p2,i+1);
+       premio=premio+Double.parseDouble(texto[1]);
+       textos=textos+texto[0];
+    }
+
+    //si hay premio lo muestro sino muestro "boleto no premiado"
+    if (premio>0) System.out.printf(textos+"El usuario ha ganado %.2f euros. Enhorabuena.\n",premio);
+    else System.out.println("Lo sentimos. Boleto no premiado.");
+
+
+
+    //Frase final del programa en cualquier caso
+    System.out.println("Gracias por usar nuestro programa. Hasta la proxima.");
+
+}//fin de main
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////  Modulos   ////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    public static int teclado(String txt) {
+        //este modulo es para no tener que repetir el scanner
+        //txt es el texto que quiero mostrar en pantalla
+        System.out.println(txt);
+        Scanner leer= new Scanner(System.in);
+       int n=leer.nextInt();
+       return n;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    public static String teclado_string(String txt) {
+    //este modulo es para no tener que repetir el scanner
+    //txt es el texto que quiero mostrar en pantalla
+        System.out.println(txt);
+        Scanner leer= new Scanner(System.in);
+        String n = leer.next();
+       return n;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    public static boolean comprobar_numeros(int n1,int n2,int n3,int n4,int n5,int e1,int e2) {
+        //voy a dar por verdadero que los numeros son distintos
+        boolean distintos=true;
+        //si alguno de los numeros  es igual a otro  "distintos" sera falso
+        //compruebo uno a uno si son iguales
+        if (n1==n2 || n1==n3 || n1==n4 || n1==n5 ||n2==n3 || n2==n4 || n2==n5 || n3==n4 ||n3==n5 || n4==n5)
+        {distintos=false;}
+
+        if( e1==e2) distintos=false;
+
+        return distintos;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+     public static String[] comprobar_premios(int[] g,int[] b,double p1,double p2,int apuesta) {
+        //declaro dos contadores de aciertos para numeros y estrellas respectivamente
+        int aciertos_n=0,aciertos_e=0;
+        String[] texto=new String[2];texto[0]="";
+        //comparo los numeros del boleto con la combinacion ganadora uno a uno
+        for(int i=0;i<5;i++){
+           if (b[i]==g[1] || b[i]==g[2] || b[i]==g[3] || b[i]==g[4] || b[i]==g[0])
+              {texto[0]=texto[0]+"Ha acertado el numero "+b[i]+" en la apuesta "+apuesta+"\n"; aciertos_n++;}
+           }
+        //compruebo las estrellas
+        if (b[5]==g[5] || b[5]==g[6]){texto[0]=texto[0]+"Ha acertado la estrella "+b[5]+" en la apuesta "+apuesta+"\n"; aciertos_e++;}
+        if (b[6]==g[5] || b[6]==g[6]){texto[0]=texto[0]+"Ha acertado la estrella "+b[6]+" en la apuesta "+apuesta+"\n"; aciertos_e++;}
+        //calculo el premio total
+        double premio=(double)aciertos_n*p2 + aciertos_e*p1;
+
+        texto[1]=""+premio;
+        return texto;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+     public static int[] boleto_aleatorio() {
+     //gerenar un array double con 5 numeros y 2 estrellas de forma aleatoria
+    double[] m=new double[7];
+    int[] n=new int[7];
+    do{
+        m[0]=(Math.random()*51)-1;
+        m[1]=(Math.random()*51)-1;
+        m[2]=(Math.random()*51)-1;
+        m[3]=(Math.random()*51)-1;
+        m[4]=(Math.random()*51)-1;
+        m[5]=Math.random()*9;
+        m[6]=Math.random()*9;
+    //paso los double a int
+    for(int i=0;i<7;i++)  {n[i]=(int)m[i];}
+    //si el boleto tiene numeros repetidos o estrella repetidas genero otro
+    }while (comprobar_numeros(n[0],n[1],n[2],n[3],n[4],n[5],n[6])==false);
+       return n;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    public static int[] boleto_manual(int i) {
+      //pedir por pantalla los 5 numeros y las 2 estrellas
+       int[] n= new int[7];
+       n[0]= teclado("Auesta "+i+" .introduce el primer numero:");
+       n[1]= teclado("Auesta "+i+" .segundo numero:");
+       n[2]= teclado("Auesta "+i+" .tercer numero:");
+       n[3]= teclado("Auesta "+i+" .cuarto numero:");
+       n[4]= teclado("Auesta "+i+" .quinto numero:");
+       n[5]= teclado("Auesta "+i+" .primera estrella:");
+       n[6]= teclado("Auesta "+i+" .segunda estrella:");
+
+       return n;
+    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+public static boolean escribir_File(String text, String url) {
+boolean boReturn = true;
+
+try{
+
+//Declaro un stream de salida (PrintWriter) que lea (FileWriter) el archivo de nombre "url" (File)
+//Si el archivo ya existia, leo lo que hay y text="lo que habia en el archivo" + text
+//imprimir el "text" en el archivo y cerrarlo.
+if (leer_File(url)!=null) text=leer_File(url)+"\n"+text;
+PrintWriter fileOut=new PrintWriter(new FileWriter(new File(url)));
+    fileOut.print(text);
+    fileOut.close();
+}
+catch (IOException e) {boReturn=false;}
+
+
+return boReturn;
+}
+
+public static String leer_File(String url) {
+String txt="";
+//Declaro un stream de lectura, que guarde en el buffer (BufferedReader)lo que lea (FileReader)en el archivo de nombre "url" (File)
+//leer es una linea de texto del archivo
+//mientras quede alguna linea de texto la aÃ±ado a la variable texto
+try{
+     BufferedReader fileIn=new BufferedReader(new FileReader(new File(url)));
+     String leer=fileIn.readLine();txt=leer;
+     while(leer!=null){
+         leer=fileIn.readLine();
+         if(leer!=null) txt=txt+"\n"+leer;
+         
+        
+     }fileIn.close();
+   }
+catch (IOException e) {}
+return txt;
+}
+}
